@@ -106,6 +106,61 @@
   .item .nm { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .item .pr { font-size: 13px; color: var(--gold); font-variant-numeric: tabular-nums; }
 
+  .items-card { margin-top: 16px; }
+  .items-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .items-head h2 { margin: 0; }
+  .items-head .count { color: var(--dim); font-size: 12px; letter-spacing: 0; text-transform: none; margin-left: 6px; }
+  .filters { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .filters input, .filters select {
+    padding: 7px 10px; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--panel-2); color: var(--text); font-size: 12px; outline: none;
+  }
+  .filters input { width: 200px; }
+  .filters select { cursor: pointer; }
+
+  .item-rows { display: flex; flex-direction: column; }
+  .item-block { border-bottom: 1px solid var(--line-soft); }
+  .item-block:last-child { border-bottom: 0; }
+  .irow {
+    display: grid; grid-template-columns: 30px minmax(0,1fr) 88px 54px 96px 14px;
+    gap: 10px; align-items: center; width: 100%; padding: 8px 4px;
+    background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer;
+  }
+  .irow:hover { background: rgba(255,255,255,.025); }
+  .ico { width: 24px; height: 24px; object-fit: contain; image-rendering: pixelated; }
+  .iname { min-width: 0; }
+  .iname .nm { display: block; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .iname .sub { display: block; color: var(--dim); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .icont { font-size: 11px; color: var(--muted); }
+  .icount { font-size: 11px; color: var(--dim); text-align: right; font-variant-numeric: tabular-nums; }
+  .iprice { font-size: 13px; color: var(--gold); text-align: right; font-variant-numeric: tabular-nums; }
+  .chev { color: var(--dim); font-size: 10px; transition: transform .15s; }
+  .item-block.open .chev { transform: rotate(90deg); }
+
+  .idetail { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 2px 4px 16px 40px; }
+  .lore {
+    background: #0b0d13; border: 1px solid var(--line-soft); border-radius: 10px;
+    padding: 12px 14px; font-size: 12px; line-height: 1.8; max-height: 280px; overflow: auto;
+  }
+  .lore div { min-height: 4px; }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .fact { font-size: 11px; padding: 2px 8px; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); }
+  .calc { font-size: 12px; }
+  .calc-title { color: var(--muted); font-size: 11px; margin: 4px 0 8px; }
+  .calc-row { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-bottom: 1px dashed var(--line-soft); }
+  .calc-row > span:first-child { color: var(--muted); }
+  .calc-row > span:last-child { font-variant-numeric: tabular-nums; }
+  .wikilink { display: inline-block; margin-top: 10px; font-size: 12px; color: var(--blue); text-decoration: none; }
+  .wikilink:hover { text-decoration: underline; }
+  .items-foot { display: flex; align-items: center; gap: 12px; margin-top: 14px; color: var(--dim); font-size: 12px; }
+  @media (max-width: 880px) {
+    .idetail { grid-template-columns: 1fr; padding-left: 4px; }
+    .irow { grid-template-columns: 26px minmax(0,1fr) 72px 16px; }
+    .icount, .icont { display: none; }
+    .filters { margin-left: 0; width: 100%; }
+    .filters input { flex: 1; width: auto; }
+  }
+
   .empty { text-align: center; padding: 64px 20px; color: var(--dim); }
   .empty strong { display: block; color: var(--muted); font-weight: 500; margin-bottom: 6px; }
 
@@ -178,6 +233,26 @@
       <div id="items" class="skeleton">尚无数据</div>
     </section>
   </div>
+
+  <section class="card items-card">
+    <div class="items-head">
+      <h2>全部物品<span class="count" id="item-total"></span></h2>
+      <div class="filters">
+        <input id="item-search" type="text" placeholder="搜索物品 / 附魔 / 重铸" autocomplete="off" spellcheck="false" />
+        <select id="container-filter"><option value="">全部容器</option></select>
+        <select id="sort-by">
+          <option value="price-desc">价格从高到低</option>
+          <option value="price-asc">价格从低到高</option>
+          <option value="name">按名称</option>
+        </select>
+      </div>
+    </div>
+    <div id="item-rows" class="item-rows"><div class="skeleton" style="padding:16px 0">查询后显示全部物品</div></div>
+    <div class="items-foot">
+      <button id="load-more" class="ghost hidden" type="button">显示更多</button>
+      <span id="shown-count"></span>
+    </div>
+  </section>
 
   <div class="foot">
     <span>数据来源：Hypixel Public API · 价格：SkyHelper，5 分钟缓存<span id="updated"></span></span>
@@ -304,7 +379,9 @@ async function loadNetworth(refresh) {
   try {
     const q = '/api/networth?player=' + encodeURIComponent(state.player) +
       '&profile=' + encodeURIComponent(state.profile) + (refresh ? '&refresh=1' : '');
-    render(await api(q));
+    const d = await api(q);
+    render(d);
+    loadItems(refresh);
   } catch (e) {
     setError(e.message);
   } finally {
@@ -341,6 +418,226 @@ $('search').addEventListener('submit', (e) => {
 $('refresh').addEventListener('click', () => loadNetworth(true));
 
 window.addEventListener('error', (e) => setError(String(e.message || e)));
+
+const ITEMS = { all: [], view: [], shown: 0, page: 60 };
+const MC_COLORS = {
+  0: '#4a4a4a', 1: '#4a4aff', 2: '#4aff4a', 3: '#4affff', 4: '#ff5555', 5: '#ff55ff',
+  6: '#ffaa00', 7: '#aaaaaa', 8: '#6a6a6a', 9: '#7a7aff', a: '#68e068', b: '#5be0e0',
+  c: '#ff6b6b', d: '#ff77ff', e: '#ffff6b', f: '#f2f2f2',
+};
+const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const stripMc = (s) => String(s || '').replace(/§./g, '');
+
+function mcToHtml(raw) {
+  const text = String(raw || '');
+  let out = '';
+  let st = { color: '', bold: false, italic: false, under: false, strike: false };
+  const flush = (chunk) => {
+    if (!chunk) return;
+    const css = [];
+    if (st.color) css.push('color:' + st.color);
+    if (st.bold) css.push('font-weight:600');
+    if (st.italic) css.push('font-style:italic');
+    const deco = [];
+    if (st.under) deco.push('underline');
+    if (st.strike) deco.push('line-through');
+    if (deco.length) css.push('text-decoration:' + deco.join(' '));
+    out += css.length ? '<span style="' + css.join(';') + '">' + esc(chunk) + '</span>' : esc(chunk);
+  };
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '§' && i + 1 < text.length) {
+      const code = text[++i].toLowerCase();
+      if (code === 'r') st = { color: '', bold: false, italic: false, under: false, strike: false };
+      else if (code === 'l') st.bold = true;
+      else if (code === 'o') st.italic = true;
+      else if (code === 'n') st.under = true;
+      else if (code === 'm') st.strike = true;
+      else if (code === 'k') { /* 乱码效果不做处理 */ }
+      else if (code === 'x') {
+        let hex = '';
+        for (let k = 0; k < 6 && i + 2 < text.length; k++) { i += 2; hex += text[i]; }
+        if (/^[0-9a-f]{6}$/i.test(hex)) st.color = '#' + hex;
+      } else if (MC_COLORS[code]) {
+        st.color = MC_COLORS[code];
+        st.bold = false; st.italic = false; st.under = false; st.strike = false;
+      }
+      continue;
+    }
+    let j = i;
+    while (j < text.length && text[j] !== '§') j++;
+    flush(text.slice(i, j));
+    i = j - 1;
+  }
+  return out;
+}
+
+function itemSubtitle(it) {
+  const bits = [];
+  if (it.reforge) bits.push(it.reforge);
+  if (it.stars) bits.push('★ ' + it.stars);
+  if (it.pet) bits.push(it.pet.tier + ' 宠物');
+  if (it.enchants && it.enchants.length) bits.push(it.enchants.length + ' 条附魔');
+  if (it.recombobulated) bits.push('已重铸');
+  if (it.soulbound) bits.push('灵魂绑定');
+  return bits.join(' · ');
+}
+
+function buildContainerOptions() {
+  const present = [...new Set(ITEMS.all.map((i) => i.container))].sort();
+  const sel = $('container-filter');
+  const keep = sel.value;
+  sel.innerHTML = '<option value="">全部容器</option>' +
+    present.map((k) => '<option value="' + k + '">' + (LABELS[k] || k) + '</option>').join('');
+  if (present.includes(keep)) sel.value = keep;
+}
+
+function applyItemFilters() {
+  const q = $('item-search').value.trim().toLowerCase();
+  const container = $('container-filter').value;
+  const sort = $('sort-by').value;
+
+  ITEMS.view = ITEMS.all.filter((it) => {
+    if (container && it.container !== container) return false;
+    if (!q) return true;
+    const hay = [stripMc(it.displayName), it.reforge || '', it.pet ? it.pet.type : '']
+      .concat((it.enchants || []).map((e) => e.name))
+      .join(' ')
+      .toLowerCase();
+    return hay.includes(q);
+  });
+
+  if (sort === 'price-asc') ITEMS.view.sort((a, b) => a.price - b.price);
+  else if (sort === 'name') ITEMS.view.sort((a, b) => stripMc(a.displayName).localeCompare(stripMc(b.displayName), 'zh'));
+  else ITEMS.view.sort((a, b) => b.price - a.price);
+
+  ITEMS.shown = Math.min(ITEMS.page, ITEMS.view.length);
+  renderItemRows();
+}
+
+function itemBlock(it, idx) {
+  const unit = it.count > 1 ? '<span class="sub">单价 ' + fmt(it.unitPrice) + '</span>' : '';
+  return (
+    '<div class="item-block" data-idx="' + idx + '">' +
+      '<button class="irow" type="button" title="' + esc(stripMc(it.displayName)) + '">' +
+        '<img class="ico" alt="" loading="lazy" src="https://sky.coflnet.com/static/icon/' + encodeURIComponent(it.id) + '" onerror="this.style.visibility=\'hidden\'" />' +
+        '<div class="iname"><span class="nm">' + mcToHtml(it.displayName) + '</span><span class="sub">' + esc(itemSubtitle(it)) + unit + '</span></div>' +
+        '<div class="icont">' + esc(LABELS[it.container] || it.container) + '</div>' +
+        '<div class="icount">' + (it.count > 1 ? 'x' + comma(it.count) : '') + '</div>' +
+        '<div class="iprice">' + fmt(it.price) + '</div>' +
+        '<span class="chev">▶</span>' +
+      '</button>' +
+      '<div class="idetail hidden"></div>' +
+    '</div>'
+  );
+}
+
+function detailHtml(it) {
+  const facts = [];
+  if (it.rarity) facts.push(it.rarity);
+  if (it.reforge) facts.push('重铸 ' + it.reforge);
+  if (it.stars) facts.push('★ ' + it.stars);
+  if (it.hotPotatoBooks) facts.push('热土豆书 ' + it.hotPotatoBooks);
+  if (it.artOfWar) facts.push('战争艺术');
+  if (it.recombobulated) facts.push('重铸成更高稀有度');
+  if (it.soulbound) facts.push('灵魂绑定');
+  if (it.pet) {
+    facts.push(it.pet.tier + ' ' + it.pet.type);
+    facts.push('经验 ' + comma(it.pet.exp));
+    if (it.pet.heldItem) facts.push('持有 ' + it.pet.heldItem);
+    if (it.pet.candyUsed) facts.push('糖果 ' + it.pet.candyUsed);
+  }
+
+  const enchantChips = (it.enchants || []).map((e) => '<span class="fact">' + esc(e.label) + '</span>').join('');
+  const attrChips = (it.attributes || []).map((a) => '<span class="fact">' + esc(a.name) + ' ' + a.level + '</span>').join('');
+
+  const rows = [{ label: '物品本体', price: it.basePrice, count: 1 }].concat(it.calculation || []);
+  const calcRows = rows.map((c) =>
+    '<div class="calc-row"><span>' + esc(c.label) + (c.count > 1 ? ' ×' + c.count : '') + '</span><span>' + fmt(c.price) + '</span></div>'
+  ).join('');
+
+  return (
+    '<div>' +
+      '<div class="facts">' + facts.map((f) => '<span class="fact">' + esc(f) + '</span>').join('') + '</div>' +
+      '<div class="lore">' + (it.lore && it.lore.length
+        ? it.lore.map((l) => '<div>' + (mcToHtml(l) || '&nbsp;') + '</div>').join('')
+        : '<div style="color:var(--dim)">该物品没有 lore 数据</div>') +
+      '</div>' +
+    '</div>' +
+    '<div class="calc">' +
+      (enchantChips || attrChips ? '<div class="facts">' + enchantChips + attrChips + '</div>' : '') +
+      '<div class="calc-title">价格构成</div>' +
+      calcRows +
+      '<div class="calc-row" style="border:0;margin-top:8px">' +
+        '<span style="color:var(--text)">合计' + (it.count > 1 ? '（单价 ' + fmt(it.unitPrice) + '）' : '') + '</span>' +
+        '<span style="color:var(--gold)">' + fmt(it.price) + '</span>' +
+      '</div>' +
+      (it.wiki ? '<a class="wikilink" href="' + esc(it.wiki) + '" target="_blank" rel="noreferrer">在 Hypixel Wiki 查看 ↗</a>' : '') +
+    '</div>'
+  );
+}
+
+function renderItemRows() {
+  const box = $('item-rows');
+  if (!ITEMS.view.length) {
+    box.innerHTML = '<div class="skeleton" style="padding:20px 0">没有匹配的物品</div>';
+  } else {
+    box.innerHTML = ITEMS.view.slice(0, ITEMS.shown).map((it, i) => itemBlock(it, i)).join('');
+  }
+
+  const more = ITEMS.shown < ITEMS.view.length;
+  show($('load-more'), more);
+  $('shown-count').textContent = ITEMS.view.length
+    ? '显示 ' + ITEMS.shown + ' / ' + ITEMS.view.length + ' 件 · 合计 ' + fmt(ITEMS.view.reduce((a, b) => a + b.price, 0))
+    : '';
+}
+
+async function loadItems(refresh) {
+  const box = $('item-rows');
+  box.innerHTML = '<div class="skeleton" style="padding:20px 0">加载物品明细…</div>';
+  $('item-total').textContent = '';
+  try {
+    const url = '/api/items?player=' + encodeURIComponent(state.player) +
+      '&profile=' + encodeURIComponent(state.profile) + (refresh ? '&refresh=1' : '');
+    const d = await api(url);
+    ITEMS.all = d.items || [];
+    const sum = ITEMS.all.reduce((a, b) => a + b.price, 0);
+    $('item-total').textContent = ITEMS.all.length + ' 件 · ' + fmt(sum);
+    buildContainerOptions();
+    applyItemFilters();
+  } catch (e) {
+    box.innerHTML = '<div class="skeleton" style="padding:20px 0">' + esc(e.message) + '</div>';
+  }
+}
+
+$('item-rows').addEventListener('click', (e) => {
+  const btn = e.target.closest('.irow');
+  if (!btn) return;
+  const block = btn.parentElement;
+  const detail = block.querySelector('.idetail');
+  if (block.classList.contains('open')) {
+    block.classList.remove('open');
+    detail.classList.add('hidden');
+    return;
+  }
+  if (!detail.dataset.filled) {
+    detail.innerHTML = detailHtml(ITEMS.view[Number(block.dataset.idx)]);
+    detail.dataset.filled = '1';
+  }
+  detail.classList.remove('hidden');
+  block.classList.add('open');
+});
+
+let searchTimer;
+$('item-search').addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(applyItemFilters, 150);
+});
+$('container-filter').addEventListener('change', applyItemFilters);
+$('sort-by').addEventListener('change', applyItemFilters);
+$('load-more').addEventListener('click', () => {
+  ITEMS.shown = Math.min(ITEMS.shown + ITEMS.page, ITEMS.view.length);
+  renderItemRows();
+});
 
 const initial = new URLSearchParams(location.search).get('player');
 if (initial) { $('player').value = initial; lookup(initial); }

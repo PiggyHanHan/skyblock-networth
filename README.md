@@ -15,6 +15,7 @@ Player data comes from the official [Hypixel Public API](https://api.hypixel.net
 - `--json` output for scripting
 - Select a specific profile with `--profile`, or list every profile with `--list`
 - Local web dashboard with a visual breakdown of the profile
+- Item browser: every item with its icon, rarity, lore, enchantments, reforge, stars and a line-by-line price composition
 
 ## Requirements
 
@@ -67,7 +68,7 @@ npm start
 # open http://127.0.0.1:5173
 ```
 
-Search by username, switch between profiles, and read the breakdown as bars plus a ranking of the most valuable items.
+Search by username, switch between profiles, and read the breakdown as bars plus a ranking of the most valuable items. Below that, the item browser lists every item the API exposes — click a row to expand its lore and the exact price composition (base item, enchantments, reforge, gems, drill parts and so on). Search, filter by container and sort by price are available.
 
 ## How it works
 

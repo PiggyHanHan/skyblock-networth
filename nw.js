@@ -85,6 +85,7 @@ function parseArgs(argv) {
     else if (a === '--json') o.json = true;
     else if (a === '--list') o.list = true;
     else if (a === '--fresh') o.fresh = true;
+    else if (a === '--items') o.items = true;
     else if (a === '--no-museum') o.museum = false;
     else if (a.startsWith('--profile=')) o.profile = a.slice('--profile='.length);
     else if (a === '--profile') o.profile = argv[++i];
@@ -108,6 +109,7 @@ const HELP = `
   --no-museum           跳过博物馆数据（更快，净值会略低）
   --json                输出机器可读 JSON
   --fresh               强制刷新价格缓存
+  --items               在 --json 输出中包含全部物品明细
   --key <key>           临时指定 Hypixel API Key（也可用 HYPIXEL_API_KEY 或 .env）
   -h, --help            显示帮助
 
@@ -486,7 +488,10 @@ async function main() {
   const bank = toNum(profile.banking && profile.banking.balance);
   const Calculator = loadCalculator();
   const calc = new Calculator(data, museumData, bank);
-  const [raw, rawNonCosmetic] = await Promise.all([calc.getNetworth({ prices }), calc.getNonCosmeticNetworth({ prices })]);
+  const [raw, rawNonCosmetic] = await Promise.all([
+    calc.getNetworth({ prices, includeItemData: !!args.items }),
+    calc.getNonCosmeticNetworth({ prices }),
+  ]);
   const normal = normalizeResult(raw);
   const nonCosmetic = normalizeResult(rawNonCosmetic);
 
@@ -528,6 +533,7 @@ async function main() {
               .map(([k, v]) => [k, { total: v.total, unsoulboundTotal: v.unsoulboundTotal }]),
           ),
           topItems: top.slice(0, args.top === 0 ? 0 : args.top || 8),
+          items: args.items ? require('./itemview').normalizeItems(normal.types) : undefined,
         },
         null,
         2,

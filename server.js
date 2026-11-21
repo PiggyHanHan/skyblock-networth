@@ -110,6 +110,18 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, data);
     }
 
+    if (url.pathname === '/api/items') {
+      const player = (url.searchParams.get('player') || '').trim();
+      if (!player) return sendJson(res, 400, { error: '缺少 player 参数' });
+      const profile = (url.searchParams.get('profile') || '').trim();
+      const refresh = url.searchParams.get('refresh') === '1';
+      const args = [player, '--json', '--items', '--top', '0'];
+      if (profile) args.push('--profile', profile);
+      const key = `i:${player.toLowerCase()}:${profile.toLowerCase()}`;
+      const data = refresh ? await runCli(args) : await cached(key, () => runCli(args));
+      return sendJson(res, 200, data);
+    }
+
     if (url.pathname.startsWith('/api/')) return sendJson(res, 404, { error: '未知接口' });
 
     return serveStatic(res, url.pathname);
