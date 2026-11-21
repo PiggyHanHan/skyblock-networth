@@ -1,12 +1,13 @@
 {
   "name": "skyblock-nw",
   "version": "1.0.0",
-  "description": "Hypixel SkyBlock 玩家 networth 查询 CLI",
+  "description": "Hypixel SkyBlock networth 查询：CLI + 本地网页",
   "main": "nw.js",
   "bin": {
     "skyblock-nw": "nw.js"
   },
   "scripts": {
+    "start": "node server.js",
     "nw": "node nw.js"
   },
   "engines": {

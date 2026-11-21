@@ -14,6 +14,7 @@ Player data comes from the official [Hypixel Public API](https://api.hypixel.net
 - Ranks the most valuable items in the profile
 - `--json` output for scripting
 - Select a specific profile with `--profile`, or list every profile with `--list`
+- Local web dashboard with a visual breakdown of the profile
 
 ## Requirements
 
@@ -56,6 +57,17 @@ Options:
 | `--fresh` | Bypass the 5-minute price cache |
 | `--key <key>` | API key for this run |
 | `-h`, `--help` | Show help |
+
+## Web UI
+
+A local dashboard is included. The API key stays in the Node process; the browser only receives the computed result.
+
+```bash
+npm start
+# open http://127.0.0.1:5173
+```
+
+Search by username, switch between profiles, and read the breakdown as bars plus a ranking of the most valuable items.
 
 ## How it works
 

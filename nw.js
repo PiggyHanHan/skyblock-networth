@@ -433,6 +433,22 @@ async function main() {
   if (!profiles.length) throw new Error(`${player.name || uuid} 没有 SkyBlock 档案`);
 
   if (args.list) {
+    const list = profiles
+      .filter((p) => p.members && p.members[memberKey])
+      .map((p) => ({
+        id: p.profile_id,
+        cute_name: p.cute_name,
+        game_mode: p.game_mode || 'normal',
+        selected: !!p.selected,
+        last_save: p.members[memberKey].last_save || null,
+      }));
+
+    if (args.json) {
+      endStep();
+      console.log(JSON.stringify({ player: { name: player.name, uuid }, profiles: list }, null, 2));
+      return;
+    }
+
     console.log('');
     console.log(`  ${bold(player.name || uuid)}  ${gray(uuid)}`);
     console.log('');
