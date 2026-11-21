@@ -601,7 +601,7 @@ async function loadItems(refresh) {
     const d = await api(url);
     ITEMS.all = d.items || [];
     const sum = ITEMS.all.reduce((a, b) => a + b.price, 0);
-    $('item-total').textContent = ITEMS.all.length + ' 件 · ' + fmt(sum);
+    $('item-total').textContent = ITEMS.all.length + ' 件 · 物品合计 ' + fmt(sum);
     buildContainerOptions();
     applyItemFilters();
   } catch (e) {
